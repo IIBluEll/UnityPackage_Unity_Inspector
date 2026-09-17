@@ -170,6 +170,10 @@ namespace HM.UnityProjectInspector.Editor
                 return;
             }
 
+            Type sourceAssetType = GetSourceAssetType(
+                assetPath ,
+                packedAssetInfo.type);
+
             assetInfoMap.Add(
                 assetPath ,
                 new AssetBuildInfoDto
@@ -177,7 +181,7 @@ namespace HM.UnityProjectInspector.Editor
                     name = GetAssetName(assetPath) ,
                     path = assetPath ,
                     type = GetAssetType(
-                        packedAssetInfo.type ,
+                        sourceAssetType ,
                         assetPath) ,
                     packedSizeBytes = packedSize
                 });
@@ -402,6 +406,31 @@ namespace HM.UnityProjectInspector.Editor
             }
 
             return "Other";
+        }
+
+        private static Type GetSourceAssetType(
+            string assetPath ,
+            Type packedAssetType)
+        {
+            if ( !IsProjectAssetPath(assetPath) )
+            {
+                return packedAssetType;
+            }
+
+            Type sourceAssetType =
+                AssetDatabase.GetMainAssetTypeAtPath(assetPath);
+
+            return sourceAssetType ?? packedAssetType;
+        }
+
+        private static bool IsProjectAssetPath(string assetPath)
+        {
+            return assetPath.StartsWith(
+                       "Assets/" ,
+                       StringComparison.Ordinal) ||
+                assetPath.StartsWith(
+                    "Packages/" ,
+                    StringComparison.Ordinal);
         }
 
         private static string GetAssetExtension(string assetPath)

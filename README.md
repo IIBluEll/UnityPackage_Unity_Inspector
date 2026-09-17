@@ -18,3 +18,4 @@ Unity 2022.3 이상에서 BuildReport를 JSON으로 내보내는 Editor 전용 �
 
 Asset Type은 Texture, Audio, Mesh, Animation, Shader, Scene, Font,
 Prefab, Material, Script, Assembly, Data, Video, Other로 분류합니다.
+`Assets/`와 `Packages/` 경로는 원본 Main Asset Type을 우선 사용합니다.
