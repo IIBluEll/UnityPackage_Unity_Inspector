@@ -7,11 +7,14 @@ using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Hmlee.UnityProjectInspector.Editor
+namespace HM.UnityProjectInspector.Editor
 {
     internal static class BuildReportExporter
     {
-        private const int SCHEMA_VERSION = 1;
+        private const int SCHEMA_VERSION = 2;
+
+        private const string LOG_PREFIX =
+            "[Unity Project Inspector]";
 
         private const string ASSET_SIZE_DEFINITION =
             "Unity BuildReport PackedAssetInfo.packedSize";
@@ -64,7 +67,11 @@ namespace Hmlee.UnityProjectInspector.Editor
         private static BuildReportDto CreateReportDto(
             BuildReport buildReport)
         {
-            BuildSummary buildSummary = buildReport.summary;
+            AssetBuildInfoDto[] assetInfoArray =
+                CreateAssetInfoArray(buildReport);
+
+            BuildMessageDto[] messageArray =
+                CreateMessageArray(buildReport);
 
             return new BuildReportDto
             {
@@ -72,15 +79,22 @@ namespace Hmlee.UnityProjectInspector.Editor
                 projectName = Application.productName ,
                 unityVersion = Application.unityVersion ,
                 assetSizeDefinition = ASSET_SIZE_DEFINITION ,
-                build = CreateBuildInfo(buildSummary) ,
-                assets = CreateAssetInfoArray(buildReport) ,
-                messages = CreateMessageArray(buildReport)
+                build = CreateBuildInfo(buildReport , messageArray) ,
+                assets = assetInfoArray ,
+                messages = messageArray
             };
         }
 
         private static BuildInfoDto CreateBuildInfo(
-            BuildSummary buildSummary)
+            BuildReport buildReport ,
+            BuildMessageDto[] messageArray)
         {
+            BuildSummary buildSummary = buildReport.summary;
+
+            long artifactSizeBytes = GetArtifactSize(
+                buildSummary.outputPath ,
+                out string artifactSizeSource);
+
             return new BuildInfoDto
             {
                 buildGuid = buildSummary.guid.ToString() ,
@@ -95,10 +109,14 @@ namespace Hmlee.UnityProjectInspector.Editor
                     FormatUtcDateTime(DateTime.UtcNow) ,
                 buildTimeSeconds =
                     buildSummary.totalTime.TotalSeconds ,
-                outputSizeBytes =
+                reportedOutputSizeBytes =
                     ConvertSize(buildSummary.totalSize) ,
-                warningCount = buildSummary.totalWarnings ,
-                errorCount = buildSummary.totalErrors
+                artifactSizeBytes = artifactSizeBytes ,
+                artifactSizeSource = artifactSizeSource ,
+                warningCount = CountMessages(messageArray , "Warning") ,
+                errorCount = CountMessages(messageArray , "Error") ,
+                reportedWarningCount = buildSummary.totalWarnings ,
+                reportedErrorCount = buildSummary.totalErrors
             };
         }
 
@@ -185,6 +203,11 @@ namespace Hmlee.UnityProjectInspector.Editor
                         continue;
                     }
 
+                    if ( IsInspectorMessage(buildMessage.content) )
+                    {
+                        continue;
+                    }
+
                     messageList.Add(
                         new BuildMessageDto
                         {
@@ -195,6 +218,34 @@ namespace Hmlee.UnityProjectInspector.Editor
             }
 
             return messageList.ToArray();
+        }
+
+        private static bool IsInspectorMessage(string message)
+        {
+            return !string.IsNullOrEmpty(message) &&
+                message.StartsWith(
+                    LOG_PREFIX ,
+                    StringComparison.Ordinal);
+        }
+
+        private static int CountMessages(
+            BuildMessageDto[] messageArray ,
+            string messageType)
+        {
+            int count = 0;
+
+            foreach ( BuildMessageDto message in messageArray )
+            {
+                if ( string.Equals(
+                        message.type ,
+                        messageType ,
+                        StringComparison.Ordinal) )
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private static string GetMessageType(LogType logType)
@@ -229,14 +280,21 @@ namespace Hmlee.UnityProjectInspector.Editor
                 case ".obj":
                 case ".dae":
                 case ".blend":
+                case ".3ds":
                     return "Mesh";
 
                 case ".anim":
+                case ".controller":
+                case ".overridecontroller":
                     return "Animation";
 
                 case ".shader":
                 case ".shadergraph":
                 case ".shadersubgraph":
+                case ".compute":
+                case ".hlsl":
+                case ".cginc":
+                case ".glslinc":
                     return "Shader";
 
                 case ".wav":
@@ -253,7 +311,41 @@ namespace Hmlee.UnityProjectInspector.Editor
                 case ".psd":
                 case ".exr":
                 case ".hdr":
+                case ".spriteatlas":
+                case ".cubemap":
                     return "Texture";
+
+                case ".ttf":
+                case ".otf":
+                case ".ttc":
+                    return "Font";
+
+                case ".prefab":
+                    return "Prefab";
+
+                case ".mat":
+                    return "Material";
+
+                case ".cs":
+                    return "Script";
+
+                case ".dll":
+                    return "Assembly";
+
+                case ".inputactions":
+                case ".json":
+                case ".xml":
+                case ".txt":
+                case ".csv":
+                case ".bytes":
+                case ".yaml":
+                case ".yml":
+                    return "Data";
+
+                case ".mp4":
+                case ".mov":
+                case ".webm":
+                    return "Video";
             }
 
             if ( assetType == null )
@@ -284,6 +376,29 @@ namespace Hmlee.UnityProjectInspector.Editor
             if ( typeof(Shader).IsAssignableFrom(assetType) )
             {
                 return "Shader";
+            }
+
+            if ( typeof(Font).IsAssignableFrom(assetType) ||
+                assetType.Name.IndexOf(
+                    "FontAsset" ,
+                    StringComparison.OrdinalIgnoreCase) >= 0 )
+            {
+                return "Font";
+            }
+
+            if ( typeof(Material).IsAssignableFrom(assetType) )
+            {
+                return "Material";
+            }
+
+            if ( typeof(MonoScript).IsAssignableFrom(assetType) )
+            {
+                return "Script";
+            }
+
+            if ( typeof(ScriptableObject).IsAssignableFrom(assetType) )
+            {
+                return "Data";
             }
 
             return "Other";
@@ -366,6 +481,48 @@ namespace Hmlee.UnityProjectInspector.Editor
         private static long ConvertSize(ulong size)
         {
             return checked((long)size);
+        }
+
+        private static long GetArtifactSize(
+            string outputPath ,
+            out string artifactSizeSource)
+        {
+            if ( string.IsNullOrWhiteSpace(outputPath) )
+            {
+                artifactSizeSource = "Unavailable";
+                return 0;
+            }
+
+            if ( File.Exists(outputPath) )
+            {
+                artifactSizeSource = "File";
+                return new FileInfo(outputPath).Length;
+            }
+
+            if ( Directory.Exists(outputPath) )
+            {
+                artifactSizeSource = "Directory";
+                return GetDirectorySize(outputPath);
+            }
+
+            artifactSizeSource = "Unavailable";
+            return 0;
+        }
+
+        private static long GetDirectorySize(string directoryPath)
+        {
+            long totalSizeBytes = 0;
+
+            foreach ( string filePath in Directory.EnumerateFiles(
+                         directoryPath ,
+                         "*" ,
+                         SearchOption.AllDirectories) )
+            {
+                totalSizeBytes = checked(
+                    totalSizeBytes + new FileInfo(filePath).Length);
+            }
+
+            return totalSizeBytes;
         }
 
         private static string FormatUtcDateTime(

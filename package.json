@@ -1,6 +1,6 @@
 {
   "name": "com.hm.unity-project-inspector",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "displayName": "Unity Project Inspector",
   "description": "Exports Unity BuildReport data for Unity Project Inspector.",
   "unity": "2022.3",

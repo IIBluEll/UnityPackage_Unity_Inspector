@@ -1,10 +1,9 @@
-using Hmlee.UnityProjectInspector.Editor;
 using System;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
 
-namespace Hm.UnityProjectInspector.Editor
+namespace HM.UnityProjectInspector.Editor
 {
     public sealed class BuildPostProcessor : IPostprocessBuildWithReport
     {

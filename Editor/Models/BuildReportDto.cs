@@ -1,6 +1,6 @@
 using System;
 
-namespace Hmlee.UnityProjectInspector.Editor
+namespace HM.UnityProjectInspector.Editor
 {
     [Serializable]
     public sealed class BuildReportDto
@@ -28,10 +28,14 @@ namespace Hmlee.UnityProjectInspector.Editor
         public string reportGeneratedAtUtc = string.Empty;
 
         public double buildTimeSeconds;
-        public long outputSizeBytes;
+        public long reportedOutputSizeBytes;
+        public long artifactSizeBytes;
+        public string artifactSizeSource = string.Empty;
 
         public int warningCount;
         public int errorCount;
+        public int reportedWarningCount;
+        public int reportedErrorCount;
     }
 
     [Serializable]

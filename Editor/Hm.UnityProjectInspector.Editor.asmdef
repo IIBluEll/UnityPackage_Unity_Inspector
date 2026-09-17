@@ -1,8 +1,8 @@
 {
-	"name": "Hm.UnityProjectInspector.Editor",
-  	"rootNamespace": "Hm.UnityProjectInspector.Editor",
-  	"includePlatforms": [
+  "name": "HM.UnityProjectInspector.Editor",
+  "rootNamespace": "HM.UnityProjectInspector.Editor",
+  "includePlatforms": [
     "Editor"
   ],
-  	"autoReferenced": true
+  "autoReferenced": true
 }
