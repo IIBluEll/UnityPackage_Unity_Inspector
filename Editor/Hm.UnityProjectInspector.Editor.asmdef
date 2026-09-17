@@ -1,0 +1,8 @@
+{
+	"name": "Hm.UnityProjectInspector.Editor",
+  	"rootNamespace": "Hm.UnityProjectInspector.Editor",
+  	"includePlatforms": [
+    "Editor"
+  ],
+  	"autoReferenced": true
+}
