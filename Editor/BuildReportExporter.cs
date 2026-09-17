@@ -218,8 +218,7 @@ namespace Hmlee.UnityProjectInspector.Editor
             Type assetType ,
             string assetPath)
         {
-            string extension =
-                Path.GetExtension(assetPath).ToLowerInvariant();
+            string extension = GetAssetExtension(assetPath);
 
             switch ( extension )
             {
@@ -290,6 +289,22 @@ namespace Hmlee.UnityProjectInspector.Editor
             return "Other";
         }
 
+        private static string GetAssetExtension(string assetPath)
+        {
+            string assetName = GetAssetName(assetPath);
+
+            int extensionIndex = assetName.LastIndexOf('.');
+
+            if ( extensionIndex <= 0 )
+            {
+                return string.Empty;
+            }
+
+            return assetName
+                .Substring(extensionIndex)
+                .ToLowerInvariant();
+        }
+
         private static string NormalizeAssetPath(
             PackedAssetInfo packedAssetInfo)
         {
@@ -300,8 +315,7 @@ namespace Hmlee.UnityProjectInspector.Editor
                     packedAssetInfo.sourceAssetPath);
             }
 
-            return
-                $"<BuiltIn>/{packedAssetInfo.sourceAssetGUID}";
+            return $"BuiltIn/{packedAssetInfo.sourceAssetGUID}";
         }
 
         private static string NormalizePath(string path)
@@ -313,11 +327,21 @@ namespace Hmlee.UnityProjectInspector.Editor
 
         private static string GetAssetName(string assetPath)
         {
-            string assetName = Path.GetFileName(assetPath);
+            if ( string.IsNullOrEmpty(assetPath) )
+            {
+                return string.Empty;
+            }
 
-            return string.IsNullOrEmpty(assetName)
-                ? assetPath
-                : assetName;
+            string normalizedPath = NormalizePath(assetPath).TrimEnd('/');
+
+            int separatorIndex = normalizedPath.LastIndexOf('/');
+
+            if ( separatorIndex < 0 )
+            {
+                return normalizedPath;
+            }
+
+            return normalizedPath.Substring(separatorIndex + 1);
         }
 
         private static int CompareAssetInfo(
