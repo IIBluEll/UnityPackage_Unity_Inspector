@@ -557,9 +557,11 @@ namespace HM.UnityProjectInspector.Editor
         private static string FormatUtcDateTime(
             DateTime dateTime)
         {
-            return dateTime
-                .ToUniversalTime()
-                .ToString("O" , CultureInfo.InvariantCulture);
+            DateTime utcDateTime = dateTime.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+                : dateTime.ToUniversalTime();
+
+            return utcDateTime.ToString("O" , CultureInfo.InvariantCulture);
         }
 
         private static string GetReportPath()
